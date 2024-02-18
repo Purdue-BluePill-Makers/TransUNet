@@ -9,7 +9,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from datasets.dataset_synapse import Synapse_dataset
+from datasets.dataset_lpcv import LPCV_dataset
 from utils import test_single_volume
 from networks.vit_seg_modeling import VisionTransformer as ViT_seg
 from networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
@@ -39,6 +39,7 @@ parser.add_argument('--deterministic', type=int,  default=1, help='whether use d
 parser.add_argument('--base_lr', type=float,  default=0.01, help='segmentation network learning rate')
 parser.add_argument('--seed', type=int, default=1234, help='random seed')
 parser.add_argument('--vit_patches_size', type=int, default=16, help='vit_patches_size, default is 16')
+parser.add_argument('--optimizer', type=str, default='SGD', help='select one optimizer')
 args = parser.parse_args()
 
 
@@ -78,11 +79,11 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(args.seed)
 
     dataset_config = {
-        'Synapse': {
-            'Dataset': Synapse_dataset,
-            'volume_path': '../data/Synapse/test_vol_h5',
-            'list_dir': './lists/lists_Synapse',
-            'num_classes': 9,
+        'LPCV': {
+            'Dataset': LPCV_dataset,
+            'volume_path': '../data/LPCV/Val/IMG/val', # Validation Dataset
+            'list_dir': '../data/LPCV/Val/val', # Ground Truth
+            'num_classes': 14,
             'z_spacing': 1,
         },
     }
@@ -108,6 +109,7 @@ if __name__ == "__main__":
     snapshot_path = snapshot_path + '_lr' + str(args.base_lr) if args.base_lr != 0.01 else snapshot_path
     snapshot_path = snapshot_path + '_'+str(args.img_size)
     snapshot_path = snapshot_path + '_s'+str(args.seed) if args.seed!=1234 else snapshot_path
+    snapshot_path = snapshot_path + '_opt' + str(args.optimizer)
 
     config_vit = CONFIGS_ViT_seg[args.vit_name]
     config_vit.n_classes = args.num_classes

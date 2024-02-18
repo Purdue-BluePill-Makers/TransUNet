@@ -3,7 +3,7 @@ import torch
 from medpy import metric
 from scipy.ndimage import zoom
 import torch.nn as nn
-import SimpleITK as sitk
+# import SimpleITK as sitk
 
 
 class DiceLoss(nn.Module):
@@ -43,7 +43,6 @@ class DiceLoss(nn.Module):
             class_wise_dice.append(1.0 - dice.item())
             loss += dice * weight[i]
         return loss / self.n_classes
-
 
 def calculate_metric_percase(pred, gt):
     pred[pred > 0] = 1
@@ -89,14 +88,14 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256], test_s
     for i in range(1, classes):
         metric_list.append(calculate_metric_percase(prediction == i, label == i))
 
-    if test_save_path is not None:
-        img_itk = sitk.GetImageFromArray(image.astype(np.float32))
-        prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
-        lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
-        img_itk.SetSpacing((1, 1, z_spacing))
-        prd_itk.SetSpacing((1, 1, z_spacing))
-        lab_itk.SetSpacing((1, 1, z_spacing))
-        sitk.WriteImage(prd_itk, test_save_path + '/'+case + "_pred.nii.gz")
-        sitk.WriteImage(img_itk, test_save_path + '/'+ case + "_img.nii.gz")
-        sitk.WriteImage(lab_itk, test_save_path + '/'+ case + "_gt.nii.gz")
+    # if test_save_path is not None:
+    #     img_itk = sitk.GetImageFromArray(image.astype(np.float32))
+    #     prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
+    #     lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
+    #     img_itk.SetSpacing((1, 1, z_spacing))
+    #     prd_itk.SetSpacing((1, 1, z_spacing))
+    #     lab_itk.SetSpacing((1, 1, z_spacing))
+    #     sitk.WriteImage(prd_itk, test_save_path + '/'+case + "_pred.nii.gz")
+    #     sitk.WriteImage(img_itk, test_save_path + '/'+ case + "_img.nii.gz")
+    #     sitk.WriteImage(lab_itk, test_save_path + '/'+ case + "_gt.nii.gz")
     return metric_list
