@@ -53,7 +53,7 @@ class RandomGenerator(object):
         label = torch.from_numpy(label.astype(np.float32))
         sample = {'image': image, 'label': label.long()}
         return sample
-    
+
 def loadImageToTensor(imagePath: str) -> torch.Tensor:
     MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
     STANDARD_DEVIATION: Tuple[float, float, float] = (0.229, 0.224, 0.225)
@@ -83,24 +83,31 @@ def loadGroundTruthImage(imagePath: str) -> ndarray:
     return outputImage
 
 class LPCV_dataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir, gt_data_dir, transform=None, target_transform=None, ttype="train"):
-        self.data_dir = data_dir
-        self.gt_data_dir = gt_data_dir
+    def __init__(self, data_dir, gt_data_dir, split, transform=None, target_transform=None, augmentation=None):
+        
+        self.split = split
         self.transform = transform
         self.target_transform = target_transform
-        self.ttype = ttype
-        if self.ttype == "train":
-            self.img_list = [file for file in os.listdir(data_dir) if file.startswith('train_')]
+        self.augmentation = augmentation
+        
+        if self.split == "train":
+            self.data_dir = os.path.join(data_dir, split)
+            self.gt_data_dir = os.path.join(gt_data_dir, split)
+            self.img_list = [file for file in os.listdir(self.data_dir) if file.startswith('train_')]
+        
         else:
-            self.img_list = [file for file in os.listdir(data_dir) if file.startswith('val_')]
-
+            self.data_dir = os.path.join(data_dir, split)
+            self.gt_data_dir = os.path.join(gt_data_dir, split)
+            self.img_list = [file for file in os.listdir(self.gt_data_dir) if file.startswith('val_')]
+        
     def __len__(self):
         return len(self.img_list)
 
     def __getitem__(self, idx):
         img_name = self.img_list[idx]
         img_path = os.path.join(self.data_dir, img_name)
-        if self.ttype == "train":
+        
+        if self.split == "train":
             gt_img_path = os.path.join(self.gt_data_dir, f"train_{img_name[6:]}")
         else:
             gt_img_path = os.path.join(self.gt_data_dir, f"val_{img_name[4:]}")
@@ -112,11 +119,13 @@ class LPCV_dataset(torch.utils.data.Dataset):
         # Apply transformations if provided
         # if self.transform:
         #     img = np.array(self.transform(img))
-
-        # if self.target_transform:
-            # gt_img = np.array(self.transform(gt_img))
-
+        #     gt_img = np.array(self.transform(gt_img))
+        
         sample = {'image' : img, 'label' : gt_img}
+        
+        if self.augmentation:
+            sample = self.augmentation(sample)
+            
         sample['case_name'] = img_name
 
         return sample
