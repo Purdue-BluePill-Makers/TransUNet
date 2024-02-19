@@ -10,9 +10,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from datasets.dataset_lpcv import LPCV_dataset
-from utils import test_single_volume
+from utils import test_lpcv_single_volume
 from networks.vit_seg_modeling import VisionTransformer as ViT_seg
 from networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
+from torchvision import transforms
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--volume_path', type=str,
@@ -42,27 +43,27 @@ parser.add_argument('--vit_patches_size', type=int, default=16, help='vit_patche
 parser.add_argument('--optimizer', type=str, default='SGD', help='select one optimizer')
 args = parser.parse_args()
 
-
 def inference(args, model, test_save_path=None):
-    db_test = args.Dataset(base_dir=args.volume_path, split="test_vol", list_dir=args.list_dir)
+    db_test = args.Dataset(data_dir=args.volume_path, gt_data_dir=args.list_dir, target_transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), ]),
+                               transform=transforms.Compose([transforms.Resize((224, 224)),
+                                                              transforms.ToTensor(),]),
+                               ttype="test")
     testloader = DataLoader(db_test, batch_size=1, shuffle=False, num_workers=1)
     logging.info("{} test iterations per epoch".format(len(testloader)))
     model.eval()
-    metric_list = 0.0
+    metric_list = []
+    time_list = []
     for i_batch, sampled_batch in tqdm(enumerate(testloader)):
         h, w = sampled_batch["image"].size()[2:]
         image, label, case_name = sampled_batch["image"], sampled_batch["label"], sampled_batch['case_name'][0]
-        metric_i = test_single_volume(image, label, model, classes=args.num_classes, patch_size=[args.img_size, args.img_size],
-                                      test_save_path=test_save_path, case=case_name, z_spacing=args.z_spacing)
-        metric_list += np.array(metric_i)
-        logging.info('idx %d case %s mean_dice %f mean_hd95 %f' % (i_batch, case_name, np.mean(metric_i, axis=0)[0], np.mean(metric_i, axis=0)[1]))
-    metric_list = metric_list / len(db_test)
-    for i in range(1, args.num_classes):
-        logging.info('Mean class %d mean_dice %f mean_hd95 %f' % (i, metric_list[i-1][0], metric_list[i-1][1]))
-    performance = np.mean(metric_list, axis=0)[0]
-    mean_hd95 = np.mean(metric_list, axis=0)[1]
-    logging.info('Testing performance in best val model: mean_dice : %f mean_hd95 : %f' % (performance, mean_hd95))
+        metric_i, time = test_lpcv_single_volume(image, label, model, classes=args.num_classes, test_save_path=test_save_path, case=i_batch)
+        time_list.append(time)
+        metric_list.extend(metric_i)
+        logging.info(f'\nidx {i_batch} case shows {metric_i} loss\nprocessing time: {time/1000}s')
+    
+    logging.info(f'\ntotal loss: {sum(metric_list)}, average processing time: {sum(time_list) / 1000 / len(testloader)}')
     return "Testing Finished!"
+
 
 
 if __name__ == "__main__":
@@ -81,11 +82,11 @@ if __name__ == "__main__":
     dataset_config = {
         'LPCV': {
             'Dataset': LPCV_dataset,
-            'volume_path': '../data/LPCV/Val/IMG/val', # Validation Dataset
-            'list_dir': '../data/LPCV/Val/val', # Ground Truth
+            'volume_path': '/workspace/project_TransUNet/data/LPCV/Val/IMG/val', # Validation Dataset
+            'list_dir': '/workspace/project_TransUNet/data/LPCV/Val/val', # Ground Truth
             'num_classes': 14,
             'z_spacing': 1,
-        },
+        }
     }
     dataset_name = args.dataset
     args.num_classes = dataset_config[dataset_name]['num_classes']
@@ -109,7 +110,7 @@ if __name__ == "__main__":
     snapshot_path = snapshot_path + '_lr' + str(args.base_lr) if args.base_lr != 0.01 else snapshot_path
     snapshot_path = snapshot_path + '_'+str(args.img_size)
     snapshot_path = snapshot_path + '_s'+str(args.seed) if args.seed!=1234 else snapshot_path
-    snapshot_path = snapshot_path + '_opt' + str(args.optimizer)
+    snapshot_path = snapshot_path + '_optimizer' + str(args.optimizer)
 
     config_vit = CONFIGS_ViT_seg[args.vit_name]
     config_vit.n_classes = args.num_classes
@@ -137,6 +138,7 @@ if __name__ == "__main__":
         os.makedirs(test_save_path, exist_ok=True)
     else:
         test_save_path = None
+
     inference(args, net, test_save_path)
 
 
