@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import DiceLoss
 from torchvision import transforms
+from lion import Lion
 
 def trainer_lpcv(args, model, snapshot_path):
     from datasets.dataset_lpcv import LPCV_dataset, RandomGenerator
@@ -46,6 +47,7 @@ def trainer_lpcv(args, model, snapshot_path):
         'SGD' : optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001),
         'ADAM' : optim.Adam(model.parameters(), lr=0.005),
         'ADAMW' : optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.001),
+        'LION' : Lion(model.parameters()),
     }
     optimizer = optimizers[args.optimizer]
 
