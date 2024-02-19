@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 from networks.vit_seg_modeling import VisionTransformer as ViT_seg
 from networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
 from trainer import trainer_lpcv
+import wandb
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
@@ -47,6 +48,11 @@ args = parser.parse_args()
 
 
 if __name__ == "__main__":
+    wandb.init(project="lpcv_experiment")
+    wandb.config = {
+        "transformer" : "R-ViT-Ti_16",
+        "dataset": "lpcv"
+    }
     if not args.deterministic:
         cudnn.benchmark = True
         cudnn.deterministic = False
@@ -61,8 +67,8 @@ if __name__ == "__main__":
     dataset_name = args.dataset
     dataset_config = {
         'LPCV': {
-            'root_path' : '../data/LPCV/IMG/train', #data_dir
-            'list_dir' : '../data/LPCV/GT_Updated/train', #gt_data_dir
+            'root_path' : '/workspace/dataset/LPCV/IMG', #data_dir
+            'list_dir' : '/workspace/dataset/LPCV/GT', #gt_data_dir
             'num_classes' : 14
         },
     }
