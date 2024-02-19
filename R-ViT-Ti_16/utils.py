@@ -41,7 +41,7 @@ class DiceLoss(nn.Module):
             dice = self._dice_loss(inputs[:, i], target[:, i])
             class_wise_dice.append(1.0 - dice.item())
             loss += dice * weight[i]
-        return loss / self.n_classes
+        return loss / self.n_classes, class_wise_dice
 
 class LogCoshDiceLoss(nn.Module):
     def __init__(self, n_classes):
@@ -73,13 +73,13 @@ class LogCoshDiceLoss(nn.Module):
         if weight is None:
             weight = [1] * self.n_classes
         assert inputs.size() == target.size(), 'predict {} & target {} shape do not match'.format(inputs.size(), target.size())
-        # class_wise_dice = []
+        class_wise_dice = []
         loss = 0.0
         for i in range(0, self.n_classes):
             dice = torch.log(torch.cosh(self._dice_loss(inputs[:, i], target[:, i])))
-            # class_wise_dice.append(1.0 - dice.item())
+            class_wise_dice.append(1.0 - dice.item())
             loss += dice * weight[i]
-        return loss / self.n_classes
+        return loss / self.n_classes, class_wise_dice
 
 # def calculate_metric_percase(pred, gt):
 #     pred[pred > 0] = 1
