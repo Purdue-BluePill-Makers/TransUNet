@@ -41,6 +41,7 @@ parser.add_argument('--base_lr', type=float,  default=0.01, help='segmentation n
 parser.add_argument('--seed', type=int, default=1234, help='random seed')
 parser.add_argument('--vit_patches_size', type=int, default=16, help='vit_patches_size, default is 16')
 parser.add_argument('--optimizer', type=str, default='SGD', help='select one optimizer')
+parser.add_argument('--loss_function', type=str, default='DICE', help='select one loss function')
 args = parser.parse_args()
 
 def inference(args, model, test_save_path=None):
@@ -111,6 +112,7 @@ if __name__ == "__main__":
     snapshot_path = snapshot_path + '_'+str(args.img_size)
     snapshot_path = snapshot_path + '_s'+str(args.seed) if args.seed!=1234 else snapshot_path
     snapshot_path = snapshot_path + '_optimizer' + str(args.optimizer)
+    snapshot_path = snapshot_path + '_loss_function' + str(args.loss_function)
 
     config_vit = CONFIGS_ViT_seg[args.vit_name]
     config_vit.n_classes = args.num_classes

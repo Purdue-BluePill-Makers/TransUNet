@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils import DiceLoss
+from utils import DiceLoss, LogCoshDiceLoss
 from torchvision import transforms
 from lion import Lion
 
@@ -41,7 +41,12 @@ def trainer_lpcv(args, model, snapshot_path):
     model.train()
 
     ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_classes)
+
+    dice_loss_functions = {
+        'DICE' : DiceLoss(num_classes),
+        'LOGCOSHDICE' : LogCoshDiceLoss(num_classes),
+    }
+    dice_loss = dice_loss_functions[args.loss_function]
 
     optimizers = {
         'SGD' : optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001),
